@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 const SUPABASE_URL = "https://qjzvajxyfpflzppqpuns.supabase.co";
-const SUPABASE_KEY = "PASTE_YOUR_KEY_HERE";
+const SUPABASE_KEY = "sb_publishable__RxQ1BmGw-rwRVq2b6uOqg_-zOnFrFh";
 
 function formatOdds(value) {
   if (value === null || value === undefined) return "—";
