@@ -2,14 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 const SUPABASE_URL = "https://qjzvajxyfpflzppqpuns.supabase.co";
-const SUPABASE_KEY = "sb_publishable__RxQ1BmGw-rwRVq2b6uOqg_-zOnFrFh";
+const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
 
 const SPORTS = ["NBA", "NFL", "MLB", "Soccer", "Tennis", "Golf", "Boxing", "CS2"];
+const TABS = ["Games", "Props", "Trends", "Insights"];
 
 export default function App() {
   const [games, setGames] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedSport, setSelectedSport] = useState("NBA");
+  const [selectedTab, setSelectedTab] = useState("Games");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,131 +49,115 @@ export default function App() {
     });
   }, [games, search]);
 
-  const featuredGame = filteredGames[0] || null;
-
   return (
     <div className="app-shell">
       <header className="topbar">
         <div>
+          <div className="eyebrow">BETTOR RESEARCH DASHBOARD</div>
           <h1 className="logo">Pickr</h1>
-          <p className="subtitle">Research lines. Find value. Move faster.</p>
+          <p className="subtitle">
+            Scan boards, compare spots, and organize your research faster.
+          </p>
         </div>
-        <button className="profile-btn">J</button>
+        <div className="avatar">J</div>
       </header>
 
-      <section className="search-wrap">
+      <section className="toolbar">
         <input
           className="search-input"
-          placeholder="Search teams, games..."
+          placeholder="Search teams or matchups"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-      </section>
 
-      <section className="sports-row">
-        {SPORTS.map((sport) => (
-          <button
-            key={sport}
-            className={`sport-pill ${selectedSport === sport ? "active" : ""}`}
-            onClick={() => setSelectedSport(sport)}
-          >
-            {sport}
-          </button>
-        ))}
-      </section>
-
-      <section className="hero-card">
-        <div className="hero-text">
-          <p className="eyebrow">Today’s board</p>
-          <h2>Live research dashboard</h2>
-          <p>Clean matchups, fast decisions.</p>
+        <div className="tabs-row">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              className={`tab-btn ${selectedTab === tab ? "active" : ""}`}
+              onClick={() => setSelectedTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
-        <div className="hero-badge">Pickr</div>
+
+        <div className="sports-row">
+          {SPORTS.map((sport) => (
+            <button
+              key={sport}
+              className={`sport-pill ${selectedSport === sport ? "active" : ""}`}
+              onClick={() => setSelectedSport(sport)}
+            >
+              {sport}
+            </button>
+          ))}
+        </div>
       </section>
 
-      {featuredGame && (
-        <section className="section">
-          <div className="section-head">
-            <h3>Featured matchup</h3>
-            <span>Top board</span>
-          </div>
-
-          <div className="featured-card">
-            <div className="featured-matchup">
-              <div>
-                <p className="team-label">Home</p>
-                <h2>{featuredGame.home_team}</h2>
-              </div>
-
-              <div className="vs-wrap">VS</div>
-
-              <div>
-                <p className="team-label">Away</p>
-                <h2>{featuredGame.away_team}</h2>
-              </div>
-            </div>
-
-            <div className="featured-footer">
-              <span>{new Date(featuredGame.commence_time).toLocaleString()}</span>
-              <button className="details-btn">Open matchup</button>
-            </div>
-          </div>
-        </section>
-      )}
+      <section className="summary-grid">
+        <div className="summary-card">
+          <span className="summary-label">Sport</span>
+          <strong>{selectedSport}</strong>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Board Size</span>
+          <strong>{filteredGames.length} Games</strong>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Mode</span>
+          <strong>{selectedTab}</strong>
+        </div>
+      </section>
 
       <section className="section">
         <div className="section-head">
-          <h3>{selectedSport} games</h3>
-          <span>{filteredGames.length} games</span>
+          <h2>{selectedSport} Research Board</h2>
+          <span>{filteredGames.length} matchups</span>
+        </div>
+
+        <div className="column-labels">
+          <span>Matchup</span>
+          <span>Start Time</span>
+          <span>Research</span>
         </div>
 
         {loading ? (
-          <div className="empty-card">Loading games...</div>
+          <div className="empty-card">Loading board...</div>
         ) : filteredGames.length === 0 ? (
           <div className="empty-card">No games found.</div>
         ) : (
-          <div className="games-grid">
+          <div className="board-list">
             {filteredGames.map((game) => (
-              <article className="game-card" key={game.id}>
-                <div className="game-top">
-                  <span className="game-league">{selectedSport}</span>
-                  <span className="game-time">
-                    {new Date(game.commence_time).toLocaleString()}
-                  </span>
-                </div>
-
-                <div className="teams-block">
-                  <div className="team-row">
-                    <span className="team-dot" />
+              <article className="research-card" key={game.id}>
+                <div className="matchup-block">
+                  <div className="team-line">
+                    <span className="team-marker home" />
                     <span>{game.home_team}</span>
                   </div>
-                  <div className="team-row">
-                    <span className="team-dot away" />
+                  <div className="team-line">
+                    <span className="team-marker away" />
                     <span>{game.away_team}</span>
                   </div>
                 </div>
 
-                <div className="card-bottom">
-                  <div className="mini-tags">
-                    <span>Moneyline</span>
-                    <span>Lines</span>
-                    <span>Research</span>
+                <div className="time-block">
+                  {new Date(game.commence_time).toLocaleString()}
+                </div>
+
+                <div className="research-block">
+                  <div className="tag-row">
+                    <span className="tag">Markets</span>
+                    <span className="tag">Lines</span>
+                    <span className="tag">Notes</span>
                   </div>
-                  <button className="open-btn">View</button>
+                  <button className="open-btn">Open</button>
                 </div>
               </article>
             ))}
           </div>
         )}
       </section>
-
-      <nav className="bottom-nav">
-        <button className="nav-btn active">Home</button>
-        <button className="nav-btn">Games</button>
-        <button className="nav-btn">Props</button>
-        <button className="nav-btn">Insights</button>
-        <button className="nav-btn">Profile</button>
-      </nav>
     </div>
   );
 }
