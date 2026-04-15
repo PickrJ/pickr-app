@@ -2,59 +2,54 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 const SUPABASE_URL = "https://qjzvajxyfpflzppqpuns.supabase.co";
-const SUPABASE_KEY = "sb_publishable__RxQ1BmGw-rwRVq2b6uOqg_-zOnFrFh";
+const SUPABASE_KEY = "PASTE_YOUR_KEY_HERE";
 
-const SPORTS = ["NBA", "NFL", "MLB", "Soccer", "Tennis", "Golf", "Boxing", "CS2"];
-const TABS = ["Games", "Props", "Trends", "Insights"];
+function formatOdds(value) {
+  if (value === null || value === undefined) return "—";
 
-function getMoneylineInfo(game) {
-  const bookmakers = game?.data?.bookmakers || [];
+  // decimal → American odds
+  if (value >= 2) {
+    return `+${Math.round((value - 1) * 100)}`;
+  } else {
+    return `${Math.round(-100 / (value - 1))}`;
+  }
+}
+
+function getOdds(game) {
+  const books = game?.data?.bookmakers || [];
+
   let bestHome = null;
   let bestAway = null;
 
-  bookmakers.forEach((book) => {
-    const h2hMarket = book.markets?.find((m) => m.key === "h2h");
-    if (!h2hMarket) return;
+  books.forEach((book) => {
+    const market = book.markets?.find((m) => m.key === "h2h");
+    if (!market) return;
 
-    h2hMarket.outcomes?.forEach((outcome) => {
-      if (outcome.name === game.home_team) {
-        if (bestHome === null || outcome.price > bestHome) {
-          bestHome = outcome.price;
+    market.outcomes?.forEach((o) => {
+      if (o.name === game.home_team) {
+        if (bestHome === null || o.price > bestHome) {
+          bestHome = o.price;
         }
       }
-
-      if (outcome.name === game.away_team) {
-        if (bestAway === null || outcome.price > bestAway) {
-          bestAway = outcome.price;
+      if (o.name === game.away_team) {
+        if (bestAway === null || o.price > bestAway) {
+          bestAway = o.price;
         }
       }
     });
   });
 
-  return {
-    booksCount: bookmakers.length,
-    bestHome,
-    bestAway,
-  };
-}
-
-function formatOdds(value) {
-  if (value === null || value === undefined) return "—";
-  return value > 0 ? `+${value}` : `${value}`;
+  return { bestHome, bestAway };
 }
 
 export default function App() {
   const [games, setGames] = useState([]);
   const [search, setSearch] = useState("");
-  const [selectedSport, setSelectedSport] = useState("NBA");
-  const [selectedTab, setSelectedTab] = useState("Games");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadGames() {
       try {
-        setLoading(true);
-
         const res = await fetch(
           `${SUPABASE_URL}/rest/v1/odds_current?select=*`,
           {
@@ -67,9 +62,8 @@ export default function App() {
 
         const data = await res.json();
         setGames(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Failed to load games:", error);
-        setGames([]);
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -78,130 +72,74 @@ export default function App() {
     loadGames();
   }, []);
 
-  const filteredGames = useMemo(() => {
-    return games.filter((game) => {
-      const matchup = `${game.home_team} ${game.away_team}`.toLowerCase();
-      return matchup.includes(search.toLowerCase());
-    });
+  const filtered = useMemo(() => {
+    return games.filter((g) =>
+      `${g.home_team} ${g.away_team}`
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
   }, [games, search]);
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div>
-          <div className="eyebrow">BETTOR RESEARCH DASHBOARD</div>
-          <h1 className="logo">Pickr</h1>
-          <p className="subtitle">
-            Scan boards, compare spots, and organize your research faster.
-          </p>
-        </div>
-        <div className="avatar">J</div>
-      </header>
+    <div style={{ padding: 20, fontFamily: "Arial" }}>
+      <h1>Pickr</h1>
 
-      <section className="toolbar">
-        <input
-          className="search-input"
-          placeholder="Search teams or matchups"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <input
+        placeholder="Search teams..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{
+          padding: 10,
+          width: "100%",
+          marginBottom: 20,
+          borderRadius: 8,
+        }}
+      />
 
-        <div className="tabs-row">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              className={`tab-btn ${selectedTab === tab ? "active" : ""}`}
-              onClick={() => setSelectedTab(tab)}
+      {loading ? (
+        <p>Loading...</p>
+      ) : filtered.length === 0 ? (
+        <p>No games found</p>
+      ) : (
+        filtered.map((game) => {
+          const odds = getOdds(game);
+
+          return (
+            <div
+              key={game.id}
+              style={{
+                border: "1px solid #ddd",
+                padding: 15,
+                marginBottom: 15,
+                borderRadius: 12,
+              }}
             >
-              {tab}
-            </button>
-          ))}
-        </div>
+              <h3>
+                {game.home_team} ({formatOdds(odds.bestHome)})
+              </h3>
+              <h3>
+                {game.away_team} ({formatOdds(odds.bestAway)})
+              </h3>
 
-        <div className="sports-row">
-          {SPORTS.map((sport) => (
-            <button
-              key={sport}
-              className={`sport-pill ${selectedSport === sport ? "active" : ""}`}
-              onClick={() => setSelectedSport(sport)}
-            >
-              {sport}
-            </button>
-          ))}
-        </div>
-      </section>
+              <p>
+                {new Date(game.commence_time).toLocaleString()}
+              </p>
 
-      <section className="summary-grid">
-        <div className="summary-card">
-          <span className="summary-label">Sport</span>
-          <strong>{selectedSport}</strong>
-        </div>
-        <div className="summary-card">
-          <span className="summary-label">Board Size</span>
-          <strong>{filteredGames.length} Games</strong>
-        </div>
-        <div className="summary-card">
-          <span className="summary-label">Mode</span>
-          <strong>{selectedTab}</strong>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-head">
-          <h2>{selectedSport} Research Board</h2>
-          <span>{filteredGames.length} matchups</span>
-        </div>
-
-        <div className="column-labels">
-          <span>Matchup</span>
-          <span>Start Time</span>
-          <span>Research</span>
-        </div>
-
-        {loading ? (
-          <div className="empty-card">Loading board...</div>
-        ) : filteredGames.length === 0 ? (
-          <div className="empty-card">No games found.</div>
-        ) : (
-          <div className="board-list">
-            {filteredGames.map((game) => {
-              const info = getMoneylineInfo(game);
-
-              return (
-                <article className="research-card" key={game.id}>
-                  <div className="matchup-block">
-                    <div className="team-line">
-                      <span className="team-marker home" />
-                      <span>{game.home_team}</span>
-                    </div>
-                    <div className="team-line">
-                      <span className="team-marker away" />
-                      <span>{game.away_team}</span>
-                    </div>
-                  </div>
-
-                  <div className="time-block">
-                    {new Date(game.commence_time).toLocaleString()}
-                  </div>
-
-                  <div className="research-block">
-                    <div className="tag-row">
-                      <span className="tag">{info.booksCount} books</span>
-                      <span className="tag">
-                        {game.home_team}: {formatOdds(info.bestHome)}
-                      </span>
-                      <span className="tag">
-                        {game.away_team}: {formatOdds(info.bestAway)}
-                      </span>
-                    </div>
-                    <button className="open-btn">Open</button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
+              <button
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  background: "black",
+                  color: "white",
+                  border: "none",
+                }}
+              >
+                Open
+              </button>
+            </div>
+          );
+        })
+      )}
     </div>
   );
 }
