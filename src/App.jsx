@@ -7,6 +7,42 @@ const SUPABASE_KEY = "sb_publishable__RxQ1BmGw-rwRVq2b6uOqg_-zOnFrFh";
 const SPORTS = ["NBA", "NFL", "MLB", "Soccer", "Tennis", "Golf", "Boxing", "CS2"];
 const TABS = ["Games", "Props", "Trends", "Insights"];
 
+function getMoneylineInfo(game) {
+  const bookmakers = game?.data?.bookmakers || [];
+  let bestHome = null;
+  let bestAway = null;
+
+  bookmakers.forEach((book) => {
+    const h2hMarket = book.markets?.find((m) => m.key === "h2h");
+    if (!h2hMarket) return;
+
+    h2hMarket.outcomes?.forEach((outcome) => {
+      if (outcome.name === game.home_team) {
+        if (bestHome === null || outcome.price > bestHome) {
+          bestHome = outcome.price;
+        }
+      }
+
+      if (outcome.name === game.away_team) {
+        if (bestAway === null || outcome.price > bestAway) {
+          bestAway = outcome.price;
+        }
+      }
+    });
+  });
+
+  return {
+    booksCount: bookmakers.length,
+    bestHome,
+    bestAway,
+  };
+}
+
+function formatOdds(value) {
+  if (value === null || value === undefined) return "—";
+  return value > 0 ? `+${value}` : `${value}`;
+}
+
 export default function App() {
   const [games, setGames] = useState([]);
   const [search, setSearch] = useState("");
@@ -128,33 +164,41 @@ export default function App() {
           <div className="empty-card">No games found.</div>
         ) : (
           <div className="board-list">
-            {filteredGames.map((game) => (
-              <article className="research-card" key={game.id}>
-                <div className="matchup-block">
-                  <div className="team-line">
-                    <span className="team-marker home" />
-                    <span>{game.home_team}</span>
-                  </div>
-                  <div className="team-line">
-                    <span className="team-marker away" />
-                    <span>{game.away_team}</span>
-                  </div>
-                </div>
+            {filteredGames.map((game) => {
+              const info = getMoneylineInfo(game);
 
-                <div className="time-block">
-                  {new Date(game.commence_time).toLocaleString()}
-                </div>
-
-                <div className="research-block">
-                  <div className="tag-row">
-                    <span className="tag">Markets</span>
-                    <span className="tag">Lines</span>
-                    <span className="tag">Notes</span>
+              return (
+                <article className="research-card" key={game.id}>
+                  <div className="matchup-block">
+                    <div className="team-line">
+                      <span className="team-marker home" />
+                      <span>{game.home_team}</span>
+                    </div>
+                    <div className="team-line">
+                      <span className="team-marker away" />
+                      <span>{game.away_team}</span>
+                    </div>
                   </div>
-                  <button className="open-btn">Open</button>
-                </div>
-              </article>
-            ))}
+
+                  <div className="time-block">
+                    {new Date(game.commence_time).toLocaleString()}
+                  </div>
+
+                  <div className="research-block">
+                    <div className="tag-row">
+                      <span className="tag">{info.booksCount} books</span>
+                      <span className="tag">
+                        {game.home_team}: {formatOdds(info.bestHome)}
+                      </span>
+                      <span className="tag">
+                        {game.away_team}: {formatOdds(info.bestAway)}
+                      </span>
+                    </div>
+                    <button className="open-btn">Open</button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
