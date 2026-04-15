@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 const SUPABASE_URL = "https://qjzvajxyfpflzppqpuns.supabase.co";
-const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+const SUPABASE_KEY = "sb_publishable__RxQ1BmGw-rwRVq2b6uOqg_-zOnFrFh";
 
 const SPORTS = ["NBA", "NFL", "MLB", "Soccer", "Tennis", "Golf", "Boxing", "CS2"];
 const TABS = ["Games", "Props", "Trends", "Insights"];
