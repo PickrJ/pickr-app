@@ -1,20 +1,15 @@
 import { useEffect, useState } from "react";
-import "./App.css";
 
 const SUPABASE_URL = "https://qjzvajxyfpflzppqpuns.supabase.co";
 const SUPABASE_KEY = "sb_publishable__RxQ1BmGw-rwRVq2b6uOqg_-zOnFrFh";
 
 export default function App() {
   const [games, setGames] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState("Loading...");
 
   useEffect(() => {
     async function loadGames() {
       try {
-        setLoading(true);
-        setError("");
-
         const res = await fetch(
           `${SUPABASE_URL}/rest/v1/odds_current?select=id,home_team,away_team,commence_time`,
           {
@@ -26,18 +21,26 @@ export default function App() {
         );
 
         const text = await res.text();
+        console.log("STATUS:", res.status);
+        console.log("BODY:", text);
 
         if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${text}`);
+          setMessage(`Error ${res.status}: ${text}`);
+          return;
         }
 
         const data = JSON.parse(text);
-        setGames(Array.isArray(data) ? data : []);
+
+        if (!Array.isArray(data) || data.length === 0) {
+          setMessage("Connected, but Supabase returned 0 rows.");
+          setGames([]);
+          return;
+        }
+
+        setGames(data);
+        setMessage(`Loaded ${data.length} games`);
       } catch (err) {
-        setError(String(err));
-        setGames([]);
-      } finally {
-        setLoading(false);
+        setMessage(`Fetch failed: ${String(err)}`);
       }
     }
 
@@ -47,26 +50,7 @@ export default function App() {
   return (
     <div style={{ padding: 20, fontFamily: "Arial, sans-serif" }}>
       <h1>Pickr</h1>
-      <p>Live NBA Games</p>
-
-      {loading && <p>Loading...</p>}
-
-      {error && (
-        <div
-          style={{
-            background: "#fee2e2",
-            color: "#991b1b",
-            padding: 12,
-            borderRadius: 12,
-            marginBottom: 16,
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-      {!loading && !error && games.length === 0 && <p>No games found.</p>}
+      <p>{message}</p>
 
       <div style={{ display: "grid", gap: 12 }}>
         {games.map((game) => (
